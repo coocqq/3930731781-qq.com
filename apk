@@ -1,0 +1,275 @@
+apply plugin: 'com.android.application'
+
+android {
+    compileSdkVersion 29
+    buildToolsVersion "29.0.3"
+
+    defaultConfig {
+        applicationId "com.example.bbll54"
+        minSdkVersion 14
+        targetSdkVersion 29
+        versionCode 54
+        versionName "5.4"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    // TV 应用配置
+    productFlavors {
+    }
+    lintOptions {
+        abortOnError false
+    }
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    // Leanback 库用于 TV 界面
+    implementation 'androidx.leanback:leanback:1.0.0'
+    implementation 'androidx.appcompat:appcompat:1.1.0'
+    implementation 'androidx.recyclerview:recyclerview:1.1.0'
+    implementation 'androidx.percentlayout:percentlayout:1.0.0'
+}
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.bbll54">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- 声明这是一个 TV 应用 -->
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="true" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:label="@string/app_name"
+        android:theme="@style/Theme.Leanback">
+        
+        <activity
+            android:name=".MainFragmentActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+
+</manifest>
+package com.example.bbll54;
+
+import androidx.fragment.app.FragmentActivity;
+import android.os.Bundle;
+
+public class MainFragmentActivity extends FragmentActivity {
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction()
+                    .replace(R.id.main_browse_fragment, new MainFragment())
+                    .commit();
+        }
+    }
+}
+package com.example.bbll54;
+
+import androidx.leanback.app.BrowseFragment;
+import androidx.leanback.widget.ArrayObjectAdapter;
+import androidx.leanback.widget.HeaderItem;
+import androidx.leanback.widget.ListRow;
+import androidx.leanback.widget.ListRowPresenter;
+import androidx.leanback.widget.OnItemViewClickedListener;
+import androidx.leanback.widget.Presenter;
+import androidx.leanback.widget.Row;
+import androidx.leanback.widget.RowPresenter;
+import android.util.Log;
+import android.widget.Toast;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class MainFragment extends BrowseFragment {
+
+    private static final String TAG = "MainFragment";
+    private ArrayObjectAdapter mRowsAdapter;
+
+    // 模拟数据：分区标题
+    private static final String[] CATEGORIES = {
+            "推荐", "热门", "游戏", "生活", "科技", "动画"
+    };
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        setupUIElements();
+        loadRows();
+        setupEventListeners();
+    }
+
+    private void setupUIElements() {
+        setTitle("BBLL 5.4");
+        setHeadersState(HEADERS_ENABLED);
+        setHeadersTransitionOnBackEnabled(true);
+        setBrandColor(getResources().getColor(R.color.fastlane_background));
+        setSearchAffordanceColor(getResources().getColor(R.color.search_opaque));
+    }
+
+    private void loadRows() {
+        mRowsAdapter = new ArrayObjectAdapter(new ListRowPresenter());
+
+        // 添加模拟内容
+        for (int i = 0; i < CATEGORIES.length; i++) {
+            HeaderItem header = new HeaderItem(i, CATEGORIES[i]);
+
+            // 这里应该去网络请求数据，现在用模拟数据
+            ArrayObjectAdapter listRowAdapter = new ArrayObjectAdapter(new CardPresenter());
+            // 添加 5 个模拟视频卡片
+            for (int j = 0; j < 5; j++) {
+                VideoCard video = new VideoCard();
+                video.setTitle("视频标题 " + (j+1));
+                video.setDetails("简介: 这是 " + CATEGORIES[i] + " 区的视频");
+                video.setCardImageUrl("https://via.placeholder.com/300x200"); // 占位图
+                listRowAdapter.add(video);
+            }
+
+            mRowsAdapter.add(new ListRow(header, listRowAdapter));
+        }
+
+        setAdapter(mRowsAdapter);
+    }
+
+    private void setupEventListeners() {
+        setOnItemViewClickedListener(new ItemViewClickedListener());
+    }
+
+    private final class ItemViewClickedListener implements OnItemViewClickedListener {
+        @Override
+        public void onItemClicked(Presenter.ViewHolder itemViewHolder, Object item,
+                                  RowPresenter.ViewHolder rowViewHolder, Row row) {
+
+            if (item instanceof VideoCard) {
+                VideoCard videoCard = (VideoCard) item;
+                Toast.makeText(getActivity(), "播放: " + videoCard.getTitle(), Toast.LENGTH_SHORT).show();
+                // 这里应该跳转到播放界面
+            }
+        }
+    }
+}
+package com.example.bbll54;
+
+import androidx.leanback.widget.Presenter;
+import androidx.leanback.widget.RowHeaderPresenter;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
+import android.view.ViewGroup;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.view.LayoutInflater;
+import android.content.Context;
+import android.view.View;
+
+public class CardPresenter extends Presenter {
+    private static final String TAG = "CardPresenter";
+
+    private static final int CARD_WIDTH = 300;
+    private static final int CARD_HEIGHT = 200;
+
+    static class ViewHolder extends Presenter.ViewHolder {
+        TextView textView;
+        ImageView imageView;
+        public ViewHolder(View view) {
+            super(view);
+            textView = (TextView) view.findViewById(R.id.card_text);
+            imageView = (ImageView) view.findViewById(R.id.card_image);
+        }
+    }
+
+    @Override
+    public ViewHolder onCreateViewHolder(ViewGroup parent) {
+        View view = LayoutInflater.from(parent.getContext())
+                .inflate(R.layout.card_view, parent, false);
+        return new ViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(Presenter.ViewHolder viewHolder, Object o) {
+        if (o instanceof VideoCard) {
+            VideoCard video = (VideoCard) o;
+            ViewHolder vh = (ViewHolder) viewHolder;
+            vh.textView.setText(video.getTitle());
+            // 注意：这里需要使用 Glide 或 Picasso 加载图片，或者写一个简单的异步加载
+            // 为了简化，这里只设置背景色和文字
+            vh.imageView.setBackgroundColor(Color.parseColor("#404040"));
+        }
+    }
+
+    @Override
+    public void onUnbindViewHolder(Presenter.ViewHolder viewHolder) {
+        // 清理资源
+    }
+}
+package com.example.bbll54;
+
+public class VideoCard {
+    private String title;
+    private String details;
+    private String cardImageUrl;
+
+    public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
+
+    public String getDetails() { return details; }
+    public void setDetails(String details) { this.details = details; }
+
+    public String getCardImageUrl() { return cardImageUrl; }
+    public void setCardImageUrl(String cardImageUrl) { this.cardImageUrl = cardImageUrl; }
+}
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main_browse_fragment"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" />
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <ImageView
+        android:id="@+id/card_image"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:scaleType="centerCrop" />
+
+    <TextView
+        android:id="@+id/card_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="4dp"
+        android:textColor="#FFFFFF"
+        android:background="#80000000"
+        android:singleLine="true"
+        android:ellipsize="end" />
+
+</LinearLayout>
+<resources>
+    <string name="app_name">BBLL 5.4</string>
+</resources>
+<resources>
+    <color name="fastlane_background">#111111</color>
+    <color name="search_opaque">#0088CC</color>
+</resources>
+
